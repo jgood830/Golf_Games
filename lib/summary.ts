@@ -7,6 +7,7 @@ export function buildSummary(round: Round, results: RoundResults): string {
   const { skinValue, ctpValue, carryover, ctpCarryover } = round.settings;
 
   lines.push("⛳ Skins results");
+  if (round.course?.name) lines.push(round.course.name);
   lines.push(`${formatMoney(skinValue)}/skin · ${formatMoney(ctpValue)}/CTP · skin carryover ${carryover ? "on" : "off"} · CTP carryover ${ctpCarryover ? "on" : "off"}`);
   lines.push("");
 

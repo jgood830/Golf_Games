@@ -57,6 +57,10 @@ function sanitize(raw: unknown): Round | null {
     },
     holeHandicaps: Array.from({ length: HOLES }, (_, i) => numOrNull(hh[i])),
     scores,
+    course:
+      r.course && typeof r.course.id === "string" && typeof r.course.name === "string"
+        ? { id: r.course.id, name: r.course.name }
+        : null,
     ctps: Array.isArray(r.ctps)
       ? r.ctps.map((c) => ({
           id: typeof c?.id === "string" ? c.id : newId(),

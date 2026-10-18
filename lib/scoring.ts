@@ -45,6 +45,8 @@ export interface Round {
   holeHandicaps: (number | null)[];
   scores: Scores;
   ctps: CtpEntry[];
+  /** Saved course these handicaps came from, if any (name kept as a snapshot). */
+  course?: { id: string; name: string } | null;
 }
 
 export type HoleStatus = "won" | "tie" | "incomplete";

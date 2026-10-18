@@ -1,15 +1,15 @@
 "use client";
 
-import { DEFAULT_HOLE_HANDICAPS, HOLES, duplicateHandicaps, type Round } from "@/lib/scoring";
+import { HOLES, type Round } from "@/lib/scoring";
 import { clearRound, defaultRound, emptyScoresFor, newId } from "@/lib/storage";
 import type { UpdateRound } from "./SkinsApp";
+import CourseCard from "./CourseCard";
 import { Button, Card, NumberInput, Stepper, Toggle, cx } from "./ui";
 
 const MAX_PLAYERS = 6;
 const MIN_PLAYERS = 2;
 
 const validStrokes = (s: number) => Number.isInteger(s) && s >= 0 && s <= 36;
-const validHcp = (h: number | null) => h == null || (Number.isInteger(h) && h >= 1 && h <= 18);
 
 export default function SetupTab({
   round,
@@ -24,8 +24,6 @@ export default function SetupTab({
   goToScorecard: () => void;
   onNewRound: () => void;
 }) {
-  const dupes = duplicateHandicaps(round.holeHandicaps);
-  const missingHcp = round.holeHandicaps.filter((h) => h == null).length;
   const hasScores = Object.values(round.scores).some((row) => row.some((v) => v != null)) || round.ctps.length > 0;
 
   const addPlayer = () =>
@@ -57,7 +55,7 @@ export default function SetupTab({
   };
 
   const resetAll = () => {
-    if (!window.confirm("Reset everything? Players, settings, course and scores will all be cleared.")) return;
+    if (!window.confirm("Reset everything? Players, settings, handicaps and scores will all be cleared. Saved courses are kept.")) return;
     clearRound();
     setRound(defaultRound());
     onNewRound();
@@ -144,46 +142,7 @@ export default function SetupTab({
         </div>
       </Card>
 
-      <Card
-        title="Course hole handicaps"
-        action={
-          <Button
-            className="px-3 text-sm"
-            onClick={() => update((d) => void (d.holeHandicaps = [...DEFAULT_HOLE_HANDICAPS]))}
-          >
-            Default
-          </Button>
-        }
-      >
-        <p className="mb-3 text-sm text-muted">1 = hardest hole. Each value 1–18 should be used once.</p>
-        <div className="grid grid-cols-6 gap-2">
-          {round.holeHandicaps.map((h, i) => {
-            const bad = !validHcp(h) || (h != null && dupes.has(h));
-            return (
-              <label key={i} className="flex flex-col items-center gap-1">
-                <span className="text-xs font-bold text-muted">#{i + 1}</span>
-                <NumberInput
-                  aria-label={`Handicap for hole ${i + 1}`}
-                  value={h}
-                  invalid={bad}
-                  onChange={(v) => update((d) => void (d.holeHandicaps[i] = v))}
-                  className="h-11 w-full text-lg"
-                />
-              </label>
-            );
-          })}
-        </div>
-        {dupes.size > 0 && (
-          <p className="mt-3 rounded-lg bg-warn-soft p-2 text-sm font-semibold text-warn">
-            Duplicate handicap{dupes.size > 1 ? "s" : ""}: {[...dupes].sort((a, b) => a - b).join(", ")}
-          </p>
-        )}
-        {missingHcp > 0 && (
-          <p className="mt-2 text-sm text-warn">
-            {missingHcp} hole{missingHcp > 1 ? "s have" : " has"} no handicap — no strokes are given there.
-          </p>
-        )}
-      </Card>
+      <CourseCard round={round} update={update} hasScores={hasScores} />
 
       <div className="grid gap-3">
         <Button variant="primary" className="min-h-14 text-lg" onClick={newRound}>

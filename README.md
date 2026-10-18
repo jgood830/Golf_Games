@@ -18,7 +18,8 @@ npm run build      # production build
 - `lib/scoring.ts`: all scoring math (strokes, net, skins, skin and CTP carryover, money, settlement). Pure TypeScript, no React.
 - `lib/scoring.test.ts`: the spec's test cases.
 - `lib/summary.ts`: plain-text share summary.
-- `lib/storage.ts`: `localStorage` load/save (wrapped in try/catch).
+- `lib/storage.ts`: `localStorage` load/save of the round (wrapped in try/catch).
+- `lib/courses.ts`: saved courses (separate storage key, so resets keep them) plus export/import.
 - `components/`: Setup, Scorecard, CTP and Results screens.
 - `app/manifest.ts`, `public/icons`, `public/sw.js`: PWA install + offline cache.
 
