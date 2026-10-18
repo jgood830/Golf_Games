@@ -5,6 +5,9 @@ import { newId } from "@/lib/storage";
 import type { UpdateRound } from "./SkinsApp";
 import { Button, Card, cx } from "./ui";
 
+const NO_WINNER = "__none__";
+const ctpLabel = (n: number) => `${n} CTP${n === 1 ? "" : "s"}`;
+
 const selectClass = "h-12 w-full rounded-lg border-2 border-line bg-surface px-2 text-lg font-semibold outline-none focus:border-accent";
 
 export default function CtpTab({ round, results, update }: { round: Round; results: RoundResults; update: UpdateRound }) {
@@ -12,7 +15,7 @@ export default function CtpTab({ round, results, update }: { round: Round; resul
     update((d) => {
       const used = new Set(d.ctps.map((c) => c.hole));
       const nextHole = Array.from({ length: HOLES }, (_, i) => i + 1).find((h) => !used.has(h)) ?? 1;
-      d.ctps.push({ id: newId(), hole: nextHole, winnerId: null, notes: "" });
+      d.ctps.push({ id: newId(), hole: nextHole, winnerId: null, noWinner: false, notes: "" });
     });
 
   const holeCounts = new Map<number, number>();
@@ -21,12 +24,18 @@ export default function CtpTab({ round, results, update }: { round: Round; resul
   return (
     <>
       <Card title="Closest to the pin" action={<Button variant="primary" onClick={addEntry} className="px-3">+ Add</Button>}>
-        <p className="mb-3 text-sm text-muted">{formatMoney(round.settings.ctpValue)} from each other player per CTP.</p>
+        <p className="mb-3 text-sm text-muted">
+          {formatMoney(round.settings.ctpValue)} from each other player per CTP.{" "}
+          {round.settings.ctpCarryover ? "If no one wins a hole, it carries to the next CTP hole." : "CTP carryover is off (change it in Setup)."}
+        </p>
         {round.ctps.length === 0 ? (
           <p className="rounded-xl bg-surface-2 p-4 text-center text-muted">No CTPs yet. Tap “+ Add” on a par 3.</p>
         ) : (
           <ul className="space-y-3">
-            {round.ctps.map((c, idx) => (
+            {round.ctps.map((c, idx) => {
+              const res = results.ctpResults[idx];
+              const pending = !c.winnerId && !c.noWinner;
+              return (
               <li key={c.id} className="rounded-xl border border-line bg-surface-2 p-3">
                 <div className="grid grid-cols-[6rem_1fr_auto] items-end gap-2">
                   <label className="text-xs font-bold text-muted">
@@ -46,11 +55,18 @@ export default function CtpTab({ round, results, update }: { round: Round; resul
                   <label className="text-xs font-bold text-muted">
                     Winner
                     <select
-                      className={cx(selectClass, !c.winnerId && "border-warn")}
-                      value={c.winnerId ?? ""}
-                      onChange={(e) => update((d) => void (d.ctps[idx].winnerId = e.target.value || null))}
+                      className={cx(selectClass, pending && "border-warn")}
+                      value={c.winnerId ?? (c.noWinner ? NO_WINNER : "")}
+                      onChange={(e) =>
+                        update((d) => {
+                          const v = e.target.value;
+                          d.ctps[idx].noWinner = v === NO_WINNER;
+                          d.ctps[idx].winnerId = v && v !== NO_WINNER ? v : null;
+                        })
+                      }
                     >
                       <option value="">— pick —</option>
+                      <option value={NO_WINNER}>No one</option>
                       {round.players.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.name}
@@ -76,12 +92,28 @@ export default function CtpTab({ round, results, update }: { round: Round; resul
                   className="mt-2 h-11 w-full rounded-lg border-2 border-line bg-surface px-3 outline-none focus:border-accent"
                 />
                 {(holeCounts.get(c.hole) ?? 0) > 1 && <p className="mt-1 text-sm text-warn">More than one CTP on hole {c.hole}.</p>}
-                {!c.winnerId && <p className="mt-1 text-sm text-warn">Pick a winner — this CTP doesn’t count yet.</p>}
+                {pending && <p className="mt-1 text-sm text-warn">Pick a winner (or “No one”) — this CTP doesn’t count yet.</p>}
+                {res?.status === "won" && res.ctpsAwarded > 1 && (
+                  <p className="mt-1 text-sm font-semibold text-good">Worth {ctpLabel(res.ctpsAwarded)} ({ctpLabel(res.carriedIn)} carried in)</p>
+                )}
+                {res?.status === "pending" && res.carriedIn > 0 && <p className="mt-1 text-sm text-muted">{ctpLabel(res.carriedIn)} carried in — worth {ctpLabel(res.worth)}</p>}
+                {res?.status === "none" && (
+                  <p className="mt-1 text-sm text-muted">
+                    {round.settings.ctpCarryover ? `No winner — ${ctpLabel(res.worth)} ${res.worth === 1 ? "carries" : "carry"} to the next CTP hole` : "No winner — CTP lost"}
+                  </p>
+                )}
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </Card>
+
+      {results.unclaimedCtpCarryover > 0 && (
+        <p className="rounded-xl bg-warn-soft p-3 text-sm font-semibold text-warn">
+          {ctpLabel(results.unclaimedCtpCarryover)} still carrying — add the next CTP hole, or it goes unclaimed.
+        </p>
+      )}
 
       {results.totalCtps > 0 && (
         <Card title="CTPs won">

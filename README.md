@@ -15,7 +15,7 @@ npm run build      # production build
 
 ## Layout
 
-- `lib/scoring.ts`: all scoring math (strokes, net, skins, carryover, money, settlement). Pure TypeScript, no React.
+- `lib/scoring.ts`: all scoring math (strokes, net, skins, skin and CTP carryover, money, settlement). Pure TypeScript, no React.
 - `lib/scoring.test.ts`: the spec's test cases.
 - `lib/summary.ts`: plain-text share summary.
 - `lib/storage.ts`: `localStorage` load/save (wrapped in try/catch).

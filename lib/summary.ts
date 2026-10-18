@@ -4,10 +4,10 @@ import { formatMoney, formatSigned, playerStatus, type Round, type RoundResults 
 export function buildSummary(round: Round, results: RoundResults): string {
   const nameOf = (id: string) => round.players.find((p) => p.id === id)?.name || "Player";
   const lines: string[] = [];
-  const { skinValue, ctpValue, carryover } = round.settings;
+  const { skinValue, ctpValue, carryover, ctpCarryover } = round.settings;
 
   lines.push("⛳ Skins results");
-  lines.push(`${formatMoney(skinValue)}/skin · ${formatMoney(ctpValue)}/CTP · carryover ${carryover ? "on" : "off"}`);
+  lines.push(`${formatMoney(skinValue)}/skin · ${formatMoney(ctpValue)}/CTP · skin carryover ${carryover ? "on" : "off"} · CTP carryover ${ctpCarryover ? "on" : "off"}`);
   lines.push("");
 
   for (const r of results.players) {
@@ -38,6 +38,11 @@ export function buildSummary(round: Round, results: RoundResults): string {
   if (results.unclaimedCarryover > 0) {
     lines.push("");
     lines.push(`Unclaimed carryover: ${results.unclaimedCarryover} skin${results.unclaimedCarryover === 1 ? "" : "s"}`);
+  }
+
+  if (results.unclaimedCtpCarryover > 0) {
+    if (results.unclaimedCarryover === 0) lines.push("");
+    lines.push(`Unclaimed CTP carryover: ${results.unclaimedCtpCarryover} CTP${results.unclaimedCtpCarryover === 1 ? "" : "s"}`);
   }
 
   return lines.join("\n");

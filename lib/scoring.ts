@@ -22,12 +22,16 @@ export interface GameSettings {
   /** Paid by each other player to the winner, per CTP. */
   ctpValue: number;
   carryover: boolean;
+  /** A CTP hole nobody wins rolls its value to the next CTP hole. */
+  ctpCarryover: boolean;
 }
 
 export interface CtpEntry {
   id: string;
   hole: number;
   winnerId: string | null;
+  /** Explicitly marked as won by nobody (e.g. no one on the green). */
+  noWinner: boolean;
   notes: string;
 }
 
@@ -62,6 +66,20 @@ export interface HoleResult {
   worth: number;
 }
 
+export type CtpStatus = "won" | "none" | "pending";
+
+export interface CtpResult {
+  id: string;
+  hole: number;
+  status: CtpStatus;
+  winnerId: string | null;
+  carriedIn: number;
+  /** CTPs awarded to the winner (0 unless status is "won"). */
+  ctpsAwarded: number;
+  /** Value of the entry if it were won: 1 + carriedIn. */
+  worth: number;
+}
+
 export interface PlayerResult {
   playerId: string;
   name: string;
@@ -86,6 +104,9 @@ export interface RoundResults {
   totalSkins: number;
   totalCtps: number;
   unclaimedCarryover: number;
+  ctpResults: CtpResult[];
+  /** CTPs still carrying after the last CTP entry (CTP carryover on only). */
+  unclaimedCtpCarryover: number;
   payments: Payment[];
   /** Sum of all totalNet values; should always be 0. */
   balance: number;
@@ -161,6 +182,37 @@ export function unclaimedCarryover(holes: HoleResult[], settings: GameSettings):
   return last.carriedIn + 1;
 }
 
+/**
+ * Resolve CTP entries in hole order. An entry with a valid winner is won; one
+ * marked noWinner is "none" (carries if CTP carryover is on, otherwise lost);
+ * anything else is pending and, like an incomplete hole, passes the carry through.
+ */
+export function computeCtps(round: Round): { results: CtpResult[]; unclaimed: number } {
+  const ids = new Set(round.players.map((p) => p.id));
+  const carryover = round.settings.ctpCarryover;
+  const ordered = round.ctps.map((c, i) => ({ c, i })).sort((a, b) => a.c.hole - b.c.hole || a.i - b.i);
+  const byId = new Map<string, CtpResult>();
+  let carry = 0;
+
+  for (const { c } of ordered) {
+    const carriedIn = carryover ? carry : 0;
+    const worth = 1 + carriedIn;
+    const base = { id: c.id, hole: c.hole, carriedIn, worth };
+    if (c.winnerId && ids.has(c.winnerId)) {
+      byId.set(c.id, { ...base, status: "won", winnerId: c.winnerId, ctpsAwarded: worth });
+      carry = 0;
+    } else if (c.noWinner) {
+      byId.set(c.id, { ...base, status: "none", winnerId: null, ctpsAwarded: 0 });
+      carry = carryover ? carry + 1 : 0;
+    } else {
+      byId.set(c.id, { ...base, status: "pending", winnerId: null, ctpsAwarded: 0 });
+    }
+  }
+
+  // Keep the caller's entry order so the UI list lines up.
+  return { results: round.ctps.map((c) => byId.get(c.id)!), unclaimed: carryover ? carry : 0 };
+}
+
 const toCents = (dollars: number) => Math.round(dollars * 100);
 
 /**
@@ -192,9 +244,10 @@ export function settle(balances: { playerId: string; amount: number }[]): Paymen
 }
 
 export function computeResults(round: Round): RoundResults {
-  const { players, settings, ctps } = round;
+  const { players, settings } = round;
   const P = players.length;
   const holes = computeHoles(round);
+  const ctpOutcome = computeCtps(round);
 
   const skinsBy: Record<string, number> = {};
   const ctpsBy: Record<string, number> = {};
@@ -205,8 +258,8 @@ export function computeResults(round: Round): RoundResults {
   for (const h of holes) {
     if (h.status === "won" && h.winnerId) skinsBy[h.winnerId] += h.skinsAwarded;
   }
-  for (const c of ctps) {
-    if (c.winnerId && c.winnerId in ctpsBy) ctpsBy[c.winnerId] += 1;
+  for (const c of ctpOutcome.results) {
+    if (c.status === "won" && c.winnerId) ctpsBy[c.winnerId] += c.ctpsAwarded;
   }
 
   const totalSkins = players.reduce((sum, p) => sum + skinsBy[p.id], 0);
@@ -236,6 +289,8 @@ export function computeResults(round: Round): RoundResults {
     totalSkins,
     totalCtps,
     unclaimedCarryover: unclaimedCarryover(holes, settings),
+    ctpResults: ctpOutcome.results,
+    unclaimedCtpCarryover: ctpOutcome.unclaimed,
     payments,
     balance,
   };

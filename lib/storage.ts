@@ -17,7 +17,7 @@ export function defaultRound(): Round {
   ];
   return {
     players,
-    settings: { skinValue: 2, ctpValue: 2, carryover: true },
+    settings: { skinValue: 2, ctpValue: 2, carryover: true, ctpCarryover: false },
     holeHandicaps: [...DEFAULT_HOLE_HANDICAPS],
     scores: emptyScoresFor(players),
     ctps: [],
@@ -53,6 +53,7 @@ function sanitize(raw: unknown): Round | null {
       skinValue: num(r.settings?.skinValue, base.settings.skinValue),
       ctpValue: num(r.settings?.ctpValue, base.settings.ctpValue),
       carryover: typeof r.settings?.carryover === "boolean" ? r.settings.carryover : true,
+      ctpCarryover: typeof r.settings?.ctpCarryover === "boolean" ? r.settings.ctpCarryover : false,
     },
     holeHandicaps: Array.from({ length: HOLES }, (_, i) => numOrNull(hh[i])),
     scores,
@@ -61,6 +62,7 @@ function sanitize(raw: unknown): Round | null {
           id: typeof c?.id === "string" ? c.id : newId(),
           hole: num(c?.hole, 1),
           winnerId: typeof c?.winnerId === "string" ? c.winnerId : null,
+          noWinner: c?.noWinner === true,
           notes: typeof c?.notes === "string" ? c.notes : "",
         }))
       : [],

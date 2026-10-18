@@ -96,6 +96,14 @@ export default function ResultsTab({ round, results }: { round: Round; results: 
         </Card>
       )}
 
+      {results.unclaimedCtpCarryover > 0 && (
+        <Card>
+          <p className="font-semibold text-warn">
+            Unclaimed CTP carryover: {results.unclaimedCtpCarryover} CTP{results.unclaimedCtpCarryover === 1 ? "" : "s"} (not paid to anyone)
+          </p>
+        </Card>
+      )}
+
       <Button variant="primary" className="min-h-14 w-full text-lg" onClick={share}>
         Share results
       </Button>

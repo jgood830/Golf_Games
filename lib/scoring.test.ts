@@ -21,7 +21,7 @@ const emptyScores = (players: Player[]): Scores =>
 
 function makeRound(overrides: Partial<Round> & { players: Player[] }): Round {
   return {
-    settings: { skinValue: 2, ctpValue: 2, carryover: true },
+    settings: { skinValue: 2, ctpValue: 2, carryover: true, ctpCarryover: false },
     holeHandicaps: [...DEFAULT_HOLE_HANDICAPS],
     scores: emptyScores(overrides.players),
     ctps: [],
@@ -90,13 +90,13 @@ describe("3. two strokes", () => {
 
 function carryoverRound(carryover: boolean): Round {
   const players = makePlayers([0, 8, 20]);
-  const round = makeRound({ players, settings: { skinValue: 2, ctpValue: 2, carryover } });
+  const round = makeRound({ players, settings: { skinValue: 2, ctpValue: 2, carryover, ctpCarryover: false } });
   setHole(round, 0, [5, 4, 6]);
   setHole(round, 1, [4, 4, 4]);
   setHole(round, 2, [5, 5, 6]);
   setHole(round, 3, [5, 5, 6]);
   setHole(round, 4, [3, 5, 6]);
-  round.ctps = [{ id: "c1", hole: 3, winnerId: "p1", notes: "" }];
+  round.ctps = [{ id: "c1", hole: 3, winnerId: "p1", noWinner: false, notes: "" }];
   return round;
 }
 
@@ -188,7 +188,7 @@ describe("7. unclaimed carryover", () => {
 
   it("is 0 when carryover is off or hole 18 is won", () => {
     const players = makePlayers([0, 0]);
-    const off = makeRound({ players, settings: { skinValue: 2, ctpValue: 2, carryover: false } });
+    const off = makeRound({ players, settings: { skinValue: 2, ctpValue: 2, carryover: false, ctpCarryover: false } });
     setHole(off, 17, [4, 4]);
     expect(computeResults(off).unclaimedCarryover).toBe(0);
 
@@ -225,6 +225,7 @@ describe("8. totals always sum to zero", () => {
           skinValue: values[int(0, values.length - 1)],
           ctpValue: values[int(0, values.length - 1)],
           carryover: rand() < 0.5,
+          ctpCarryover: rand() < 0.5,
         },
       });
       for (let h = 0; h < HOLES; h++) {
@@ -233,7 +234,8 @@ describe("8. totals always sum to zero", () => {
       round.ctps = Array.from({ length: int(0, 4) }, (_, i) => ({
         id: `c${i}`,
         hole: int(1, 18),
-        winnerId: rand() < 0.2 ? null : players[int(0, n - 1)].id,
+        winnerId: rand() < 0.3 ? null : players[int(0, n - 1)].id,
+        noWinner: rand() < 0.5,
         notes: "",
       }));
 
@@ -252,6 +254,66 @@ describe("8. totals always sum to zero", () => {
       for (const v of Object.values(left)) expect(Math.abs(v)).toBeLessThan(0.005);
       expect(results.payments.length).toBeLessThanOrEqual(n - 1);
     }
+  });
+});
+
+describe("CTP carryover", () => {
+  const ctp = (id: string, hole: number, winnerId: string | null, noWinner = false) => ({ id, hole, winnerId, noWinner, notes: "" });
+
+  function ctpRound(ctpCarryover: boolean): Round {
+    const players = makePlayers([0, 0, 0]);
+    return makeRound({
+      players,
+      settings: { skinValue: 2, ctpValue: 2, carryover: true, ctpCarryover },
+      // Entered out of hole order on purpose: carry follows hole order.
+      ctps: [ctp("c8", 8, "p2"), ctp("c3", 3, null, true), ctp("c12", 12, null), ctp("c16", 16, null, true)],
+    });
+  }
+
+  it("rolls an unwon CTP to the next CTP hole, skipping pending entries", () => {
+    const results = computeResults(ctpRound(true));
+    const byId = Object.fromEntries(results.ctpResults.map((c) => [c.id, c]));
+    expect(results.ctpResults.map((c) => c.id)).toEqual(["c8", "c3", "c12", "c16"]);
+    expect(byId.c3).toMatchObject({ status: "none", carriedIn: 0, ctpsAwarded: 0 });
+    expect(byId.c8).toMatchObject({ status: "won", carriedIn: 1, ctpsAwarded: 2 });
+    expect(byId.c12).toMatchObject({ status: "pending", carriedIn: 0, ctpsAwarded: 0 });
+    expect(byId.c16).toMatchObject({ status: "none", carriedIn: 0 });
+
+    expect(results.players.map((r) => r.ctps)).toEqual([0, 2, 0]);
+    expect(results.totalCtps).toBe(2);
+    expect(results.players.map((r) => r.ctpNet)).toEqual([-4, 8, -4]);
+    expect(results.unclaimedCtpCarryover).toBe(1);
+  });
+
+  it("carries across consecutive unwon CTPs and through a pending one", () => {
+    const players = makePlayers([0, 0]);
+    const round = makeRound({
+      players,
+      settings: { skinValue: 2, ctpValue: 5, carryover: true, ctpCarryover: true },
+      ctps: [ctp("a", 3, null, true), ctp("b", 7, null), ctp("c", 12, null, true), ctp("d", 16, "p1")],
+    });
+    const results = computeResults(round);
+    expect(results.ctpResults.map((c) => c.carriedIn)).toEqual([0, 1, 1, 2]);
+    expect(results.players.map((r) => r.ctps)).toEqual([3, 0]);
+    expect(results.players.map((r) => r.ctpNet)).toEqual([15, -15]);
+    expect(results.unclaimedCtpCarryover).toBe(0);
+  });
+
+  it("with CTP carryover off, unwon CTPs are lost", () => {
+    const results = computeResults(ctpRound(false));
+    expect(results.ctpResults.every((c) => c.carriedIn === 0)).toBe(true);
+    expect(results.players.map((r) => r.ctps)).toEqual([0, 1, 0]);
+    expect(results.players.map((r) => r.ctpNet)).toEqual([-2, 4, -2]);
+    expect(results.unclaimedCtpCarryover).toBe(0);
+  });
+
+  it("is independent of the skins carryover setting", () => {
+    const round = carryoverRound(false);
+    round.settings.ctpCarryover = true;
+    round.ctps = [ctp("x", 3, null, true), ctp("y", 6, "p1")];
+    const results = computeResults(round);
+    expect(results.holes[4].skinsAwarded).toBe(1);
+    expect(results.players.map((r) => r.ctps)).toEqual([2, 0, 0]);
   });
 });
 

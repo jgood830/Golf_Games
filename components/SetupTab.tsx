@@ -129,10 +129,17 @@ export default function SetupTab({
           <MoneyRow label="Value per CTP" hint="Closest to the pin" value={round.settings.ctpValue} onChange={(v) => update((d) => void (d.settings.ctpValue = v))} />
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="font-semibold">Carry over ties</div>
+              <div className="font-semibold">Carry over skins</div>
               <div className="text-sm text-muted">Tied skins roll to the next hole</div>
             </div>
             <Toggle label="Carry over tied holes" checked={round.settings.carryover} onChange={(v) => update((d) => void (d.settings.carryover = v))} />
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="font-semibold">Carry over CTPs</div>
+              <div className="text-sm text-muted">An unwon CTP rolls to the next CTP hole</div>
+            </div>
+            <Toggle label="Carry over closest to the pin" checked={round.settings.ctpCarryover} onChange={(v) => update((d) => void (d.settings.ctpCarryover = v))} />
           </div>
         </div>
       </Card>
