@@ -5,6 +5,7 @@ import {
   computeHoles,
   computeResults,
   duplicateHandicaps,
+  playOrder,
   settle,
   strokesOnHole,
   type Player,
@@ -314,6 +315,50 @@ describe("CTP carryover", () => {
     const results = computeResults(round);
     expect(results.holes[4].skinsAwarded).toBe(1);
     expect(results.players.map((r) => r.ctps)).toEqual([2, 0, 0]);
+  });
+});
+
+describe("starting on the back 9", () => {
+  const back9 = (players: Player[]) =>
+    makeRound({ players, settings: { skinValue: 2, ctpValue: 2, carryover: true, ctpCarryover: true, startOnBack9: true } });
+
+  it("plays 10–18 then 1–9", () => {
+    expect(playOrder({ startOnBack9: true }).map((i) => i + 1)).toEqual([10, 11, 12, 13, 14, 15, 16, 17, 18, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    expect(playOrder({}).map((i) => i + 1)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]);
+  });
+
+  it("carries from hole 18 into hole 1, and hole 9 is the last hole", () => {
+    const players = makePlayers([0, 0]);
+    const round = back9(players);
+    for (let h = 9; h < 17; h++) setHole(round, h, [4, 5]); // P1 wins 10–17
+    setHole(round, 17, [4, 4]); // 18 tie
+    setHole(round, 0, [5, 4]); // 1: P2 wins 2 skins
+    for (let h = 1; h < 8; h++) setHole(round, h, [4, 5]); // P1 wins 2–8
+    setHole(round, 8, [4, 4]); // 9 tie → unclaimed
+
+    const results = computeResults(round);
+    expect(results.holes.map((h) => h.hole)).toEqual(Array.from({ length: 18 }, (_, i) => i + 1));
+    expect(results.holes[0]).toMatchObject({ status: "won", winnerId: "p2", carriedIn: 1, skinsAwarded: 2 });
+    expect(results.holes[17].carriedIn).toBe(0);
+    expect(results.unclaimedCarryover).toBe(1);
+    expect(results.players.map((r) => r.skins)).toEqual([15, 2]);
+  });
+
+  it("a hole 18 tie is not unclaimed when hole 18 isn't the last hole", () => {
+    const round = back9(makePlayers([0, 0]));
+    setHole(round, 17, [4, 4]);
+    expect(computeResults(round).unclaimedCarryover).toBe(0);
+  });
+
+  it("orders CTP carryover by play order", () => {
+    const round = back9(makePlayers([0, 0]));
+    round.ctps = [
+      { id: "h3", hole: 3, winnerId: "p1", noWinner: false, notes: "" },
+      { id: "h16", hole: 16, winnerId: null, noWinner: true, notes: "" },
+    ];
+    const results = computeResults(round);
+    expect(results.ctpResults.find((c) => c.id === "h3")).toMatchObject({ carriedIn: 1, ctpsAwarded: 2 });
+    expect(results.unclaimedCtpCarryover).toBe(0);
   });
 });
 

@@ -16,13 +16,14 @@ export default function SetupTab({
   update,
   setRound,
   goToScorecard,
-  onNewRound,
+  resetHole,
 }: {
   round: Round;
   update: UpdateRound;
   setRound: (r: Round) => void;
   goToScorecard: () => void;
-  onNewRound: () => void;
+  /** Jump the scorecard to the first hole played. */
+  resetHole: (startOnBack9: boolean) => void;
 }) {
   const hasScores = Object.values(round.scores).some((row) => row.some((v) => v != null)) || round.ctps.length > 0;
 
@@ -50,7 +51,7 @@ export default function SetupTab({
       d.scores = emptyScoresFor(d.players);
       d.ctps = [];
     });
-    onNewRound();
+    resetHole(!!round.settings.startOnBack9);
     goToScorecard();
   };
 
@@ -58,7 +59,7 @@ export default function SetupTab({
     if (!window.confirm("Reset everything? Players, settings, handicaps and scores will all be cleared. Saved courses are kept.")) return;
     clearRound();
     setRound(defaultRound());
-    onNewRound();
+    resetHole(false);
   };
 
   return (
@@ -131,6 +132,20 @@ export default function SetupTab({
               <div className="text-sm text-muted">Tied skins roll to the next hole</div>
             </div>
             <Toggle label="Carry over tied holes" checked={round.settings.carryover} onChange={(v) => update((d) => void (d.settings.carryover = v))} />
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="font-semibold">Start on the back 9</div>
+              <div className="text-sm text-muted">Play 10–18, then 1–9. Carryovers follow that order.</div>
+            </div>
+            <Toggle
+              label="Start on the back 9"
+              checked={!!round.settings.startOnBack9}
+              onChange={(v) => {
+                update((d) => void (d.settings.startOnBack9 = v));
+                if (!hasScores) resetHole(v);
+              }}
+            />
           </div>
           <div className="flex items-center justify-between gap-3">
             <div>

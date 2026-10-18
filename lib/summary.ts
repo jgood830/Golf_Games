@@ -1,4 +1,4 @@
-import { formatMoney, formatSigned, playerStatus, type Round, type RoundResults } from "./scoring";
+import { formatMoney, formatSigned, playOrder, playerStatus, type Round, type RoundResults } from "./scoring";
 
 /** Plain-text round summary for sharing. */
 export function buildSummary(round: Round, results: RoundResults): string {
@@ -8,6 +8,7 @@ export function buildSummary(round: Round, results: RoundResults): string {
 
   lines.push("⛳ Skins results");
   if (round.course?.name) lines.push(round.course.name);
+  if (round.settings.startOnBack9) lines.push("Started on the back 9");
   lines.push(`${formatMoney(skinValue)}/skin · ${formatMoney(ctpValue)}/CTP · skin carryover ${carryover ? "on" : "off"} · CTP carryover ${ctpCarryover ? "on" : "off"}`);
   lines.push("");
 
@@ -27,7 +28,7 @@ export function buildSummary(round: Round, results: RoundResults): string {
     }
   }
 
-  const won = results.holes.filter((h) => h.status === "won");
+  const won = playOrder(round.settings).map((i) => results.holes[i]).filter((h) => h.status === "won");
   if (won.length > 0) {
     lines.push("");
     lines.push("Skins:");

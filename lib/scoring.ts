@@ -24,6 +24,8 @@ export interface GameSettings {
   carryover: boolean;
   /** A CTP hole nobody wins rolls its value to the next CTP hole. */
   ctpCarryover: boolean;
+  /** Play holes 10–18 first, then 1–9 (a "back nine" or two-tee start). */
+  startOnBack9?: boolean;
 }
 
 export interface CtpEntry {
@@ -125,16 +127,24 @@ export function netScore(gross: number, strokes: number): number {
   return gross - strokes;
 }
 
+/** 0-based hole indices in the order they are played. */
+export function playOrder(settings: Pick<GameSettings, "startOnBack9">): number[] {
+  const front = Array.from({ length: 9 }, (_, i) => i);
+  const back = Array.from({ length: HOLES - 9 }, (_, i) => i + 9);
+  return settings.startOnBack9 ? [...back, ...front] : [...front, ...back];
+}
+
 function isEntered(gross: number | null | undefined): gross is number {
   return typeof gross === "number" && Number.isFinite(gross);
 }
 
 export function computeHoles(round: Round): HoleResult[] {
   const { players, settings, holeHandicaps, scores } = round;
-  const results: HoleResult[] = [];
+  // Results stay indexed by hole number; only the carry follows play order.
+  const results: HoleResult[] = new Array(HOLES);
   let carry = 0;
 
-  for (let i = 0; i < HOLES; i++) {
+  for (const i of playOrder(settings)) {
     const handicap = holeHandicaps[i] ?? null;
     const strokes: Record<string, number> = {};
     const net: Record<string, number | null> = {};
@@ -157,7 +167,7 @@ export function computeHoles(round: Round): HoleResult[] {
 
     if (!complete) {
       // Incomplete holes award nothing and pass the carry through unchanged.
-      results.push({ hole: i + 1, handicap, status: "incomplete", strokes, net, winnerId: null, carriedIn, skinsAwarded: 0, worth });
+      results[i] = { hole: i + 1, handicap, status: "incomplete", strokes, net, winnerId: null, carriedIn, skinsAwarded: 0, worth };
       continue;
     }
 
@@ -166,10 +176,10 @@ export function computeHoles(round: Round): HoleResult[] {
     const leaders = players.filter((p) => net[p.id] === low);
 
     if (leaders.length === 1) {
-      results.push({ hole: i + 1, handicap, status: "won", strokes, net, winnerId: leaders[0].id, carriedIn, skinsAwarded: worth, worth });
+      results[i] = { hole: i + 1, handicap, status: "won", strokes, net, winnerId: leaders[0].id, carriedIn, skinsAwarded: worth, worth };
       carry = 0;
     } else {
-      results.push({ hole: i + 1, handicap, status: "tie", strokes, net, winnerId: null, carriedIn, skinsAwarded: 0, worth });
+      results[i] = { hole: i + 1, handicap, status: "tie", strokes, net, winnerId: null, carriedIn, skinsAwarded: 0, worth };
       carry = settings.carryover ? carry + 1 : 0;
     }
   }
@@ -177,22 +187,25 @@ export function computeHoles(round: Round): HoleResult[] {
   return results;
 }
 
-/** Skins left on the table when hole 18 ties with carryover on. */
+/** Skins left on the table when the last hole played (18, or 9 on a back-nine start) ties with carryover on. */
 export function unclaimedCarryover(holes: HoleResult[], settings: GameSettings): number {
-  const last = holes[HOLES - 1];
+  const order = playOrder(settings);
+  const last = holes[order[order.length - 1]];
   if (!settings.carryover || !last || last.status !== "tie") return 0;
   return last.carriedIn + 1;
 }
 
 /**
- * Resolve CTP entries in hole order. An entry with a valid winner is won; one
+ * Resolve CTP entries in play order. An entry with a valid winner is won; one
  * marked noWinner is "none" (carries if CTP carryover is on, otherwise lost);
  * anything else is pending and, like an incomplete hole, passes the carry through.
  */
 export function computeCtps(round: Round): { results: CtpResult[]; unclaimed: number } {
   const ids = new Set(round.players.map((p) => p.id));
   const carryover = round.settings.ctpCarryover;
-  const ordered = round.ctps.map((c, i) => ({ c, i })).sort((a, b) => a.c.hole - b.c.hole || a.i - b.i);
+  const position = new Map(playOrder(round.settings).map((holeIndex, pos) => [holeIndex + 1, pos]));
+  const pos = (hole: number) => position.get(hole) ?? hole;
+  const ordered = round.ctps.map((c, i) => ({ c, i })).sort((a, b) => pos(a.c.hole) - pos(b.c.hole) || a.i - b.i);
   const byId = new Map<string, CtpResult>();
   let carry = 0;
 

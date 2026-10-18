@@ -1,6 +1,6 @@
 "use client";
 
-import { HOLES, type HoleResult, type Round, type RoundResults } from "@/lib/scoring";
+import { HOLES, playOrder, type HoleResult, type Round, type RoundResults } from "@/lib/scoring";
 import type { UpdateRound } from "./SkinsApp";
 import { Button, Card, NumberInput, Segmented, Stepper, StrokeDots, cx } from "./ui";
 
@@ -94,15 +94,19 @@ function HoleView({
   setGross: (playerId: string, holeIndex: number, v: number | null) => void;
 }) {
   const i = hole - 1;
+  const order = playOrder(round.settings).map((x) => x + 1);
+  const pos = order.indexOf(hole);
+  const prevHole = pos > 0 ? order[pos - 1] : null;
+  const nextHole = pos < order.length - 1 ? order[pos + 1] : null;
   const h = results.holes[i];
 
   return (
     <>
-      <HolePicker results={results} hole={hole} setHole={setHole} />
+      <HolePicker results={results} order={order} hole={hole} setHole={setHole} />
 
       <Card>
         <div className="mb-4 flex items-center justify-between gap-2">
-          <Button aria-label="Previous hole" disabled={hole <= 1} onClick={() => setHole(hole - 1)} className="h-14 w-14 text-2xl">
+          <Button aria-label="Previous hole" disabled={prevHole == null} onClick={() => prevHole && setHole(prevHole)} className="h-14 w-14 text-2xl">
             ‹
           </Button>
           <div className="text-center">
@@ -111,7 +115,7 @@ function HoleView({
               Hcp {h.handicap ?? "—"} · worth {skinsLabel(h.worth)}
             </div>
           </div>
-          <Button aria-label="Next hole" disabled={hole >= HOLES} onClick={() => setHole(hole + 1)} className="h-14 w-14 text-2xl">
+          <Button aria-label="Next hole" disabled={nextHole == null} onClick={() => nextHole && setHole(nextHole)} className="h-14 w-14 text-2xl">
             ›
           </Button>
         </div>
@@ -158,19 +162,19 @@ function HoleView({
         )}
       </Card>
 
-      {hole < HOLES && h.status !== "incomplete" && (
-        <Button variant="primary" className="min-h-14 w-full text-lg" onClick={() => setHole(hole + 1)}>
-          Next: Hole {hole + 1} →
+      {nextHole != null && h.status !== "incomplete" && (
+        <Button variant="primary" className="min-h-14 w-full text-lg" onClick={() => setHole(nextHole)}>
+          Next: Hole {nextHole} →
         </Button>
       )}
     </>
   );
 }
 
-function HolePicker({ results, hole, setHole }: { results: RoundResults; hole: number; setHole: (h: number) => void }) {
+function HolePicker({ results, order, hole, setHole }: { results: RoundResults; order: number[]; hole: number; setHole: (h: number) => void }) {
   return (
     <div className="grid grid-cols-9 gap-1" aria-label="Choose hole">
-      {results.holes.map((h) => (
+      {order.map((n) => results.holes[n - 1]).map((h) => (
         <button
           key={h.hole}
           type="button"
@@ -218,8 +222,8 @@ function GridView({
           </tr>
         </thead>
         <tbody>
-          {results.holes.map((h) => (
-            <tr key={h.hole} className={cx(h.hole === 10 && "[&>td]:border-t-4", "[&>td]:border-t [&>td]:border-line")}>
+          {playOrder(round.settings).map((i) => results.holes[i]).map((h, pos) => (
+            <tr key={h.hole} className={cx(pos === 9 && "[&>td]:border-t-4", "[&>td]:border-t [&>td]:border-line")}>
               <td className="sticky left-0 bg-surface px-2 py-1 text-left">
                 <button type="button" onClick={() => onPickHole(h.hole)} className="min-h-11 text-left">
                   <div className="font-extrabold">{h.hole}</div>

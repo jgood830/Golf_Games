@@ -91,7 +91,7 @@ export default function ResultsTab({ round, results }: { round: Round; results: 
       {results.unclaimedCarryover > 0 && (
         <Card>
           <p className="font-semibold text-warn">
-            Unclaimed carryover: {results.unclaimedCarryover} skin{results.unclaimedCarryover === 1 ? "" : "s"} (hole 18 tied — not paid to anyone)
+            Unclaimed carryover: {results.unclaimedCarryover} skin{results.unclaimedCarryover === 1 ? "" : "s"} (hole {round.settings.startOnBack9 ? 9 : 18} tied — not paid to anyone)
           </p>
         </Card>
       )}

@@ -102,7 +102,7 @@ export default function SkinsApp() {
       </header>
 
       <main className="flex-1 space-y-4 px-4 pb-28 pt-4">
-        {ui.tab === "setup" && <SetupTab round={round} update={update} setRound={setRound} goToScorecard={() => setTab("scorecard")} onNewRound={() => setUi((u) => ({ ...u, hole: 1 }))} />}
+        {ui.tab === "setup" && <SetupTab round={round} update={update} setRound={setRound} goToScorecard={() => setTab("scorecard")} resetHole={(back9) => setUi((u) => ({ ...u, hole: back9 ? 10 : 1 }))} />}
         {ui.tab === "scorecard" && (
           <ScorecardTab
             round={named}
