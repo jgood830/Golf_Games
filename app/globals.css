@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f3f5f2;
+  --surface: #ffffff;
+  --surface-2: #e9ede7;
+  --ink: #0a0f0b;
+  --muted: #4a5550;
+  --line: #cfd6cf;
+  --accent: #0d5c36;
+  --accent-ink: #ffffff;
+  --accent-soft: #dcefe3;
+  --warn: #a64b00;
+  --warn-soft: #fff1dc;
+  --bad: #b3161b;
+  --good: #0d7a3e;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #070a08;
+    --surface: #121915;
+    --surface-2: #1b241e;
+    --ink: #f4f7f4;
+    --muted: #a7b3ab;
+    --line: #2b3830;
+    --accent: #2ea86a;
+    --accent-ink: #04140b;
+    --accent-soft: #153224;
+    --warn: #ffb547;
+    --warn-soft: #3a2a0e;
+    --bad: #ff7b7b;
+    --good: #5be39a;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-good: var(--good);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-sans);
+  overscroll-behavior-y: none;
+}
+
+/* Hide number spinners; we provide our own steppers. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
