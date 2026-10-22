@@ -57,6 +57,7 @@ function sanitize(raw: unknown): Round | null {
       startOnBack9: r.settings?.startOnBack9 === true,
     },
     holeHandicaps: Array.from({ length: HOLES }, (_, i) => numOrNull(hh[i])),
+    holePars: Array.isArray(r.holePars) ? Array.from({ length: HOLES }, (_, i) => numOrNull(r.holePars![i])) : undefined,
     scores,
     course:
       r.course && typeof r.course.id === "string" && typeof r.course.name === "string"

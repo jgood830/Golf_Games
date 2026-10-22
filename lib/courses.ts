@@ -6,6 +6,10 @@ export interface Course {
   name: string;
   /** Hole handicap per hole (0-based index). null = not entered. */
   holeHandicaps: (number | null)[];
+  /** Par per hole (0-based index), if known. */
+  holePars?: (number | null)[];
+  /** Where the course data came from, for re-syncing and attribution. */
+  source?: { provider: "opengolfapi"; id: string };
   updatedAt: number;
 }
 
@@ -25,6 +29,18 @@ export function sameHandicaps(a: (number | null)[], b: (number | null)[]): boole
   return true;
 }
 
+export function findBySource(courses: Course[], provider: string, id: string): Course | undefined {
+  return courses.find((c) => c.source?.provider === provider && c.source.id === id);
+}
+
+const parsOf = (v: unknown): (number | null)[] | undefined =>
+  Array.isArray(v) ? Array.from({ length: HOLES }, (_, i) => numOrNull(v[i])) : undefined;
+
+const sourceOf = (v: unknown): Course["source"] => {
+  const s = v as { provider?: unknown; id?: unknown } | null;
+  return s && s.provider === "opengolfapi" && typeof s.id === "string" && s.id ? { provider: "opengolfapi", id: s.id } : undefined;
+};
+
 export function findByName(courses: Course[], name: string): Course | undefined {
   return courses.find((c) => sameName(c.name, name));
 }
@@ -42,6 +58,8 @@ export function sanitizeCourses(raw: unknown, makeId: () => string): Course[] {
       id: typeof r.id === "string" && r.id ? r.id : makeId(),
       name,
       holeHandicaps: Array.from({ length: HOLES }, (_, i) => numOrNull(r.holeHandicaps![i])),
+      ...(parsOf(r.holePars) && { holePars: parsOf(r.holePars) }),
+      ...(sourceOf(r.source) && { source: sourceOf(r.source) }),
       updatedAt: typeof r.updatedAt === "number" ? r.updatedAt : 0,
     });
   }
@@ -52,7 +70,7 @@ export function exportCourses(courses: Course[]): string {
   return JSON.stringify({
     app: EXPORT_APP,
     version: EXPORT_VERSION,
-    courses: sortCourses(courses).map(({ name, holeHandicaps }) => ({ name, holeHandicaps })),
+    courses: sortCourses(courses).map(({ name, holeHandicaps, holePars, source }) => ({ name, holeHandicaps, holePars, source })),
   });
 }
 
@@ -83,12 +101,13 @@ export function importCourses(
   for (const c of incoming) {
     const i = courses.findIndex((x) => sameName(x.name, c.name));
     if (i >= 0) {
-      if (!sameHandicaps(courses[i].holeHandicaps, c.holeHandicaps)) {
-        courses[i] = { ...courses[i], holeHandicaps: c.holeHandicaps, updatedAt: now };
+      const parsChanged = c.holePars != null && !sameHandicaps(courses[i].holePars ?? [], c.holePars);
+      if (!sameHandicaps(courses[i].holeHandicaps, c.holeHandicaps) || parsChanged) {
+        courses[i] = { ...courses[i], holeHandicaps: c.holeHandicaps, ...(c.holePars && { holePars: c.holePars }), updatedAt: now };
         updated++;
       }
     } else {
-      courses.push({ id: makeId(), name: c.name, holeHandicaps: c.holeHandicaps, updatedAt: now });
+      courses.push({ ...c, id: makeId(), updatedAt: now });
       added++;
     }
   }
