@@ -1,56 +1,65 @@
 @import "tailwindcss";
 
+/* Classic clubhouse: cream card stock, deep green, brass. */
 :root {
-  --bg: #f3f5f2;
-  --surface: #ffffff;
-  --surface-2: #e9ede7;
-  --ink: #0a0f0b;
-  --muted: #4a5550;
-  --line: #cfd6cf;
-  --accent: #0d5c36;
-  --accent-ink: #ffffff;
-  --accent-soft: #dcefe3;
-  --warn: #a64b00;
-  --warn-soft: #fff1dc;
-  --bad: #b3161b;
-  --good: #0d7a3e;
+  --bg: #efe8d4;
+  --paper: #fbf8ef;
+  --paper-2: #f2ebd8;
+  --ink: #1a2a1e;
+  --muted: #5b6455;
+  --rule: #d5c8a4;
+  --green: #1d4a2c;
+  --green-ink: #fbf8ef;
+  --green-soft: #dfe9d6;
+  --brass: #94701f;
+  --brass-soft: #f3e6c2;
+  --warn: #974708;
+  --warn-soft: #f6e1c4;
+  --bad: #9b2a22;
+  --good: #1d6a37;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #070a08;
-    --surface: #121915;
-    --surface-2: #1b241e;
-    --ink: #f4f7f4;
-    --muted: #a7b3ab;
-    --line: #2b3830;
-    --accent: #2ea86a;
-    --accent-ink: #04140b;
-    --accent-soft: #153224;
-    --warn: #ffb547;
-    --warn-soft: #3a2a0e;
-    --bad: #ff7b7b;
-    --good: #5be39a;
+    --bg: #0c130e;
+    --paper: #142019;
+    --paper-2: #1b2a21;
+    --ink: #f2ebd8;
+    --muted: #a9ae9c;
+    --rule: #34463a;
+    --green: #74bd8e;
+    --green-ink: #0c130e;
+    --green-soft: #1d3425;
+    --brass: #dbbb69;
+    --brass-soft: #3a3019;
+    --warn: #f1b463;
+    --warn-soft: #3b2b13;
+    --bad: #f28b80;
+    --good: #8dd7a5;
     color-scheme: dark;
   }
 }
 
 @theme inline {
   --color-bg: var(--bg);
-  --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
   --color-ink: var(--ink);
   --color-muted: var(--muted);
-  --color-line: var(--line);
-  --color-accent: var(--accent);
-  --color-accent-ink: var(--accent-ink);
-  --color-accent-soft: var(--accent-soft);
+  --color-rule: var(--rule);
+  --color-green: var(--green);
+  --color-green-ink: var(--green-ink);
+  --color-green-soft: var(--green-soft);
+  --color-brass: var(--brass);
+  --color-brass-soft: var(--brass-soft);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
   --color-bad: var(--bad);
   --color-good: var(--good);
+  /* System fonts only, so the app works offline with nothing to download. */
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, "Times New Roman", serif;
 }
 
 html,
@@ -65,7 +74,6 @@ body {
   overscroll-behavior-y: none;
 }
 
-/* Hide number spinners; we provide our own steppers. */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -77,5 +85,38 @@ input[type="number"] {
 }
 
 .tabular {
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Small-caps style label used across the card. */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Double rule, like a printed scorecard border. */
+.rule-double {
+  border-bottom: 3px double var(--rule);
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.animate-sheet {
+  animation: sheet-up 180ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-sheet {
+    animation: none;
+  }
 }

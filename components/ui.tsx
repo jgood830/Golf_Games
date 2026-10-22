@@ -6,12 +6,13 @@ export function cx(...classes: (string | false | null | undefined)[]): string {
   return classes.filter(Boolean).join(" ");
 }
 
-export function Card({ title, action, children, className }: { title?: ReactNode; action?: ReactNode; children: ReactNode; className?: string }) {
+/** Ruled section with a small-caps title, like a block on a printed card. */
+export function Section({ title, action, children, className }: { title?: ReactNode; action?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <section className={cx("rounded-2xl border border-line bg-surface p-4 shadow-sm", className)}>
+    <section className={cx("border-t border-rule pt-4", className)}>
       {(title || action) && (
-        <div className="mb-3 flex items-center justify-between gap-2">
-          {title && <h2 className="text-lg font-bold">{title}</h2>}
+        <div className="mb-3 flex min-h-8 items-center justify-between gap-2">
+          {title && <h2 className="eyebrow">{title}</h2>}
           {action}
         </div>
       )}
@@ -20,7 +21,7 @@ export function Card({ title, action, children, className }: { title?: ReactNode
   );
 }
 
-type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
+type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "brass";
 
 export function Button({
   variant = "secondary",
@@ -28,21 +29,38 @@ export function Button({
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }) {
   const styles: Record<ButtonVariant, string> = {
-    primary: "bg-accent text-accent-ink border-accent",
-    secondary: "bg-surface text-ink border-line",
-    danger: "bg-surface text-bad border-bad",
+    primary: "bg-green text-green-ink border-green",
+    secondary: "bg-paper text-ink border-rule",
+    danger: "bg-paper text-bad border-bad/60",
     ghost: "bg-transparent text-ink border-transparent",
+    brass: "bg-brass-soft text-ink border-brass/50",
   };
   return (
     <button
       type="button"
       className={cx(
-        "inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-xl border-2 px-4 font-semibold transition active:scale-[0.97] disabled:opacity-40",
+        "inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-md border px-4 font-semibold transition active:scale-[0.97] disabled:opacity-40",
         styles[variant],
         className,
       )}
       {...props}
     />
+  );
+}
+
+export function IconButton({ label, children, className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { label: string }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      className={cx("flex h-11 w-11 items-center justify-center rounded-full text-ink active:bg-paper-2", className)}
+      {...props}
+    >
+      <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        {children}
+      </svg>
+    </button>
   );
 }
 
@@ -100,8 +118,8 @@ export function NumberInput({
       }}
       onFocus={(e) => e.target.select()}
       className={cx(
-        "tabular rounded-lg border-2 bg-surface text-center font-bold text-ink outline-none focus:border-accent",
-        invalid ? "border-warn bg-warn-soft" : "border-line",
+        "tabular rounded-md border bg-paper text-center font-semibold text-ink outline-none focus:border-green focus:ring-2 focus:ring-green/30",
+        invalid ? "border-warn bg-warn-soft" : "border-rule",
         className,
       )}
       {...rest}
@@ -117,7 +135,6 @@ export function Stepper({
   emptyStart,
   invalid,
   label,
-  size = "md",
 }: {
   value: number | null;
   onChange: (v: number | null) => void;
@@ -127,7 +144,6 @@ export function Stepper({
   emptyStart?: number;
   invalid?: boolean;
   label: string;
-  size?: "md" | "lg";
 }) {
   const step = (delta: number) => {
     if (value == null) {
@@ -136,31 +152,14 @@ export function Stepper({
     }
     onChange(Math.min(max, Math.max(min, Math.round(value) + delta)));
   };
-  const btn = size === "lg" ? "h-14 w-14 text-3xl" : "h-11 w-11 text-2xl";
+  const btn = "flex h-11 w-11 items-center justify-center rounded-md border border-rule bg-paper-2 text-2xl leading-none active:scale-95";
   return (
     <div className="flex items-center gap-1.5">
-      <button
-        type="button"
-        aria-label={`Decrease ${label}`}
-        onClick={() => step(-1)}
-        className={cx(btn, "flex items-center justify-center rounded-xl border-2 border-line bg-surface-2 font-bold leading-none active:scale-95")}
-      >
+      <button type="button" aria-label={`Decrease ${label}`} onClick={() => step(-1)} className={btn}>
         −
       </button>
-      <NumberInput
-        aria-label={label}
-        value={value}
-        onChange={onChange}
-        invalid={invalid}
-        className={size === "lg" ? "h-14 w-16 text-3xl" : "h-11 w-14 text-xl"}
-        placeholder="–"
-      />
-      <button
-        type="button"
-        aria-label={`Increase ${label}`}
-        onClick={() => step(1)}
-        className={cx(btn, "flex items-center justify-center rounded-xl border-2 border-line bg-surface-2 font-bold leading-none active:scale-95")}
-      >
+      <NumberInput aria-label={label} value={value} onChange={onChange} invalid={invalid} className="h-11 w-14 font-serif text-xl" placeholder="–" />
+      <button type="button" aria-label={`Increase ${label}`} onClick={() => step(1)} className={btn}>
         +
       </button>
     </div>
@@ -170,9 +169,13 @@ export function Stepper({
 export function StrokeDots({ count, className }: { count: number; className?: string }) {
   if (count <= 0) return null;
   return (
-    <span className={cx("inline-flex gap-0.5 align-middle", className)} aria-label={`${count} stroke${count === 1 ? "" : "s"}`} title={`${count} stroke${count === 1 ? "" : "s"}`}>
+    <span
+      className={cx("inline-flex gap-0.5 align-middle", className)}
+      aria-label={`${count} stroke${count === 1 ? "" : "s"}`}
+      title={`${count} stroke${count === 1 ? "" : "s"}`}
+    >
       {Array.from({ length: count }, (_, i) => (
-        <span key={i} className="block h-2 w-2 rounded-full bg-accent" />
+        <span key={i} className="block h-1.5 w-1.5 rounded-full bg-brass" />
       ))}
     </span>
   );
@@ -186,28 +189,54 @@ export function Toggle({ checked, onChange, label }: { checked: boolean; onChang
       aria-checked={checked}
       aria-label={label}
       onClick={() => onChange(!checked)}
-      className={cx("relative h-8 w-14 shrink-0 rounded-full border-2 transition", checked ? "border-accent bg-accent" : "border-line bg-surface-2")}
+      className={cx("relative h-8 w-14 shrink-0 rounded-full border transition", checked ? "border-green bg-green" : "border-rule bg-paper-2")}
     >
-      <span className={cx("absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all", checked ? "left-[26px]" : "left-0.5")} />
+      <span className={cx("absolute top-[3px] h-6 w-6 rounded-full shadow transition-all", checked ? "left-[27px] bg-green-ink" : "left-[3px] bg-paper")} />
     </button>
   );
 }
 
-export function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
+/** A labelled settings row: title + hint on the left, control on the right. */
+export function Row({ title, hint, children }: { title: ReactNode; hint?: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex rounded-xl border-2 border-line bg-surface-2 p-1" role="tablist">
-      {options.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          role="tab"
-          aria-selected={value === o.value}
-          onClick={() => onChange(o.value)}
-          className={cx("min-h-10 flex-1 rounded-lg px-3 font-semibold", value === o.value ? "bg-accent text-accent-ink" : "text-muted")}
-        >
-          {o.label}
-        </button>
-      ))}
+    <div className="flex min-h-14 items-center justify-between gap-3 border-b border-rule/70 py-2 last:border-b-0">
+      <div className="min-w-0">
+        <div className="font-semibold">{title}</div>
+        {hint && <div className="text-sm text-muted">{hint}</div>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** Full-height panel that slides up over the scorecard. */
+export function Sheet({ title, onClose, children, footer }: { title: string; onClose: () => void; children: ReactNode; footer?: ReactNode }) {
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-40 flex justify-center bg-black/40" role="dialog" aria-modal="true" aria-label={title} onClick={onClose}>
+      <div
+        className="animate-sheet mt-[max(0.75rem,env(safe-area-inset-top))] flex w-full max-w-xl flex-col overflow-hidden rounded-t-2xl bg-paper shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="rule-double flex items-center justify-between gap-2 px-4 py-2">
+          <h2 className="font-serif text-2xl font-semibold">{title}</h2>
+          <Button variant="ghost" className="px-2 text-green" onClick={onClose}>
+            Done
+          </Button>
+        </header>
+        <div className="flex-1 overflow-y-auto px-4 pb-6 pt-2">{children}</div>
+        {footer && <div className="border-t border-rule px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">{footer}</div>}
+      </div>
     </div>
   );
 }

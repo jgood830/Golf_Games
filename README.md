@@ -20,7 +20,11 @@ npm run build      # production build
 - `lib/summary.ts`: plain-text share summary.
 - `lib/storage.ts`: `localStorage` load/save of the round (wrapped in try/catch).
 - `lib/courses.ts`: saved courses (separate storage key, so resets keep them) plus export/import.
-- `components/`: Setup, Scorecard, CTP and Results screens.
+- `components/SkinsApp.tsx`: app shell and UI state.
+- `components/Wizard.tsx`: new-round setup (players → game → course).
+- `components/round/`: the scorecard home screen (hole view with number pad, inline closest-to-the-pin, full card).
+- `components/sheets/`: Settle up (results, payments, share) and Round settings.
+- `components/editors/`: players, game and course editors shared by the wizard and settings.
 - `app/manifest.ts`, `public/icons`, `public/sw.js`: PWA install + offline cache.
 
 ## Deploy to Vercel
