@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { exportCourses, findBySource, importCourses, sameHandicaps, sanitizeCourses, sortCourses, type Course } from "./courses";
+import { exportCourses, importCourses, sameHandicaps, sanitizeCourses, sortCourses, type Course } from "./courses";
 import { DEFAULT_HOLE_HANDICAPS } from "./scoring";
 
 let n = 0;
@@ -49,21 +49,6 @@ describe("courses", () => {
     expect(out[0].holeHandicaps).toHaveLength(18);
     expect(out[0].holeHandicaps.slice(0, 3)).toEqual([1, null, null]);
     expect(sanitizeCourses("nope", makeId)).toEqual([]);
-  });
-
-  it("keeps par and the OpenGolfAPI source through export and import", () => {
-    const pars = Array.from({ length: 18 }, (_, i) => (i % 3 === 0 ? 3 : 4));
-    const c: Course = { ...course("Pebble"), holePars: pars, source: { provider: "opengolfapi", id: "abc" } };
-    const [imported] = importCourses(exportCourses([c]), [], makeId).courses;
-    expect(imported.holePars).toEqual(pars);
-    expect(imported.source).toEqual({ provider: "opengolfapi", id: "abc" });
-    expect(findBySource([imported], "opengolfapi", "abc")?.name).toBe("Pebble");
-
-    // Re-importing with new pars updates an existing same-name course.
-    const newPars = pars.map((p) => p + 1);
-    const res = importCourses(exportCourses([{ ...c, holePars: newPars }]), [imported], makeId);
-    expect(res.updated).toBe(1);
-    expect(res.courses[0].holePars).toEqual(newPars);
   });
 
   it("compares handicaps", () => {

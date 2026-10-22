@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { exportCourses, findByName, findBySource, importCourses, loadCourses, sameHandicaps, saveCourses, sortCourses, type Course } from "@/lib/courses";
+import { exportCourses, findByName, importCourses, loadCourses, sameHandicaps, saveCourses, sortCourses, type Course } from "@/lib/courses";
 import { DEFAULT_HOLE_HANDICAPS, duplicateHandicaps, type Round } from "@/lib/scoring";
-import { OPENGOLF_ATTRIBUTION, courseLabel, type OpenGolfCourse } from "@/lib/opengolf";
 import { newId } from "@/lib/storage";
-import CourseSearch from "./CourseSearch";
 import type { UpdateRound } from "./SkinsApp";
 import { Button, Card, NumberInput, cx } from "./ui";
 
@@ -19,9 +17,9 @@ export default function CourseCard({ round, update, hasScores }: { round: Round;
 
   useEffect(() => saveCourses(courses), [courses]);
 
-  const flash = (text: string, ms = 3000) => {
+  const flash = (text: string) => {
     setMessage(text);
-    setTimeout(() => setMessage((m) => (m === text ? null : m)), ms);
+    setTimeout(() => setMessage((m) => (m === text ? null : m)), 3000);
   };
 
   const selected = courses.find((c) => c.id === round.course?.id) ?? null;
@@ -32,31 +30,8 @@ export default function CourseCard({ round, update, hasScores }: { round: Round;
   const applyCourse = (c: Course | null) =>
     update((d) => {
       d.course = c ? { id: c.id, name: c.name } : null;
-      if (c) {
-        d.holeHandicaps = [...c.holeHandicaps];
-        d.holePars = c.holePars ? [...c.holePars] : undefined;
-      }
+      if (c) d.holeHandicaps = [...c.holeHandicaps];
     });
-
-  const applyApiCourse = (api: OpenGolfCourse) => {
-    if (hasScores && !sameHandicaps(api.holeHandicaps, round.holeHandicaps)) {
-      if (!window.confirm(`Load ${api.name}? Strokes on holes already scored will be recalculated with its handicaps.`)) return;
-    }
-    // Re-picking a course already saved from OpenGolfAPI refreshes it instead of duplicating it.
-    const existing = findBySource(courses, "opengolfapi", api.id) ?? findByName(courses, courseLabel(api));
-    const record: Course = {
-      id: existing?.id ?? newId(),
-      name: existing?.name ?? courseLabel(api),
-      holeHandicaps: api.holeHandicaps,
-      holePars: api.holePars,
-      source: { provider: "opengolfapi", id: api.id },
-      updatedAt: Date.now(),
-    };
-    setCourses((cs) => (existing ? cs.map((c) => (c.id === existing.id ? record : c)) : [...cs, record]));
-    applyCourse(record);
-    const gaps = api.missingHandicaps > 0 ? ` — ${api.missingHandicaps} hole${api.missingHandicaps === 1 ? " is" : "s are"} missing a handicap; fill ${api.missingHandicaps === 1 ? "it" : "them"} in below and tap Update` : "";
-    flash(`${existing ? "Refreshed" : "Saved"} ${record.name}${gaps}`, gaps ? 8000 : 3000);
-  };
 
   const pick = (id: string) => {
     const c = courses.find((x) => x.id === id) ?? null;
@@ -72,13 +47,13 @@ export default function CourseCard({ round, update, hasScores }: { round: Round;
     const existing = findByName(courses, name);
     if (existing) {
       if (!window.confirm(`“${existing.name}” already exists. Replace its handicaps with these?`)) return;
-      const replaced = { ...existing, holeHandicaps: [...round.holeHandicaps], holePars: round.holePars, updatedAt: Date.now() };
+      const replaced = { ...existing, holeHandicaps: [...round.holeHandicaps], updatedAt: Date.now() };
       setCourses((cs) => cs.map((c) => (c.id === existing.id ? replaced : c)));
       applyCourse(replaced);
       flash(`Updated ${existing.name}`);
       return;
     }
-    const c: Course = { id: newId(), name, holeHandicaps: [...round.holeHandicaps], holePars: round.holePars, updatedAt: Date.now() };
+    const c: Course = { id: newId(), name, holeHandicaps: [...round.holeHandicaps], updatedAt: Date.now() };
     setCourses((cs) => [...cs, c]);
     applyCourse(c);
     flash(`Saved ${name}`);
@@ -141,8 +116,6 @@ export default function CourseCard({ round, update, hasScores }: { round: Round;
 
   return (
     <Card title="Course">
-      <CourseSearch onPick={applyApiCourse} />
-      <div className="mt-4" />
       <label className="block text-xs font-bold text-muted" htmlFor="course-select">
         Saved course
       </label>
@@ -159,7 +132,6 @@ export default function CourseCard({ round, update, hasScores }: { round: Round;
           </option>
         ))}
       </select>
-      {selected?.source?.provider === "opengolfapi" && <p className="mt-1 text-[11px] text-muted">{OPENGOLF_ATTRIBUTION}</p>}
 
       {modified && (
         <div className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-warn-soft p-2">
@@ -194,12 +166,7 @@ export default function CourseCard({ round, update, hasScores }: { round: Round;
 
       <div className="mb-3 mt-5 flex items-center justify-between gap-2">
         <h3 className="font-bold">Hole handicaps</h3>
-        <Button className="min-h-10 px-3 text-sm" onClick={() =>
-            update((d) => {
-              d.holeHandicaps = [...DEFAULT_HOLE_HANDICAPS];
-              d.holePars = undefined;
-            })
-          }>
+        <Button className="min-h-10 px-3 text-sm" onClick={() => update((d) => void (d.holeHandicaps = [...DEFAULT_HOLE_HANDICAPS]))}>
           Default
         </Button>
       </div>

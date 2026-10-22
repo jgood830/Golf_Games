@@ -47,8 +47,6 @@ export interface Round {
   holeHandicaps: (number | null)[];
   scores: Scores;
   ctps: CtpEntry[];
-  /** Par per hole (0-based index), if known. Display only; not used in scoring. */
-  holePars?: (number | null)[];
   /** Saved course these handicaps came from, if any (name kept as a snapshot). */
   course?: { id: string; name: string } | null;
 }

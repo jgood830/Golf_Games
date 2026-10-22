@@ -98,7 +98,6 @@ function HoleView({
   const pos = order.indexOf(hole);
   const prevHole = pos > 0 ? order[pos - 1] : null;
   const nextHole = pos < order.length - 1 ? order[pos + 1] : null;
-  const par = round.holePars?.[i] ?? null;
   const h = results.holes[i];
 
   return (
@@ -113,7 +112,7 @@ function HoleView({
           <div className="text-center">
             <div className="text-3xl font-extrabold">Hole {hole}</div>
             <div className="text-sm font-semibold text-muted">
-              {par != null && <>Par {par} · </>}Hcp {h.handicap ?? "—"} · worth {skinsLabel(h.worth)}
+              Hcp {h.handicap ?? "—"} · worth {skinsLabel(h.worth)}
             </div>
           </div>
           <Button aria-label="Next hole" disabled={nextHole == null} onClick={() => nextHole && setHole(nextHole)} className="h-14 w-14 text-2xl">
@@ -146,7 +145,7 @@ function HoleView({
                   value={gross}
                   min={1}
                   max={15}
-                  emptyStart={par ?? 4}
+                  emptyStart={4}
                   invalid={!validGross(gross)}
                   onChange={(v) => setGross(p.id, i, v)}
                 />
@@ -228,10 +227,7 @@ function GridView({
               <td className="sticky left-0 bg-surface px-2 py-1 text-left">
                 <button type="button" onClick={() => onPickHole(h.hole)} className="min-h-11 text-left">
                   <div className="font-extrabold">{h.hole}</div>
-                  <div className="text-[11px] leading-tight text-muted">
-                    {round.holePars?.[h.hole - 1] != null && <div>par {round.holePars[h.hole - 1]}</div>}
-                    hcp {h.handicap ?? "—"}
-                  </div>
+                  <div className="text-[11px] text-muted">hcp {h.handicap ?? "—"}</div>
                 </button>
               </td>
               {round.players.map((p) => {
