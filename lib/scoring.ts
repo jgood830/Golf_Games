@@ -14,6 +14,8 @@ export interface Player {
   name: string;
   /** Strokes given, whole number 0–36. */
   strokes: number;
+  /** Venmo username (no @), for settle-up requests. Not used in scoring. */
+  venmo?: string;
 }
 
 export interface GameSettings {

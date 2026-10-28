@@ -2,6 +2,7 @@
 
 import { HOLES, type Round } from "@/lib/scoring";
 import { newId } from "@/lib/storage";
+import { normalizeVenmo } from "@/lib/venmo";
 import type { UpdateRound } from "../SkinsApp";
 import { Button, Stepper, cx } from "../ui";
 
@@ -74,6 +75,23 @@ export default function PlayersEditor({ round, update }: { round: Round; update:
                   onChange={(v) => update((d) => void (d.players[i].strokes = v ?? 0))}
                 />
               </div>
+              <label className="mt-2 flex items-center justify-between gap-2 pl-7">
+                <span className="text-sm text-muted">Venmo (optional)</span>
+                <span className="flex h-11 w-40 items-center rounded-md border border-rule bg-paper px-2 focus-within:border-green">
+                  <span className="text-muted">@</span>
+                  <input
+                    type="text"
+                    value={p.venmo ?? ""}
+                    placeholder="username"
+                    aria-label={`Venmo username for player ${i + 1}`}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    onChange={(e) => update((d) => void (d.players[i].venmo = normalizeVenmo(e.target.value) || undefined))}
+                    className="min-w-0 flex-1 bg-transparent px-1 outline-none"
+                  />
+                </span>
+              </label>
               {(nameMissing || badStrokes) && (
                 <p className="mt-1 pl-7 text-sm text-warn">{nameMissing ? "Name required" : "Strokes should be a whole number 0–36"}</p>
               )}

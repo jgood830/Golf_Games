@@ -19,6 +19,7 @@ npm run build      # production build
 - `lib/scoring.test.ts`: the spec's test cases.
 - `lib/summary.ts`: plain-text share summary.
 - `lib/storage.ts`: `localStorage` load/save of the round (wrapped in try/catch).
+- `lib/venmo.ts`: Venmo request/pay deep links for settle up.
 - `lib/courses.ts`: saved courses (separate storage key, so resets keep them) plus export/import.
 - `components/SkinsApp.tsx`: app shell and UI state.
 - `components/Wizard.tsx`: new-round setup (players → game → course).

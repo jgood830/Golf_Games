@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { formatMoney, formatSigned, playOrder, playerStatus, type Round, type RoundResults } from "@/lib/scoring";
 import { buildSummary } from "@/lib/summary";
+import { venmoLinks, venmoNote, type VenmoAction } from "@/lib/venmo";
 import { Button, Section, Sheet, cx } from "../ui";
 
 const tone = (amount: number) => {
@@ -32,6 +33,20 @@ export default function SettleSheet({
   const ctpLog = round.ctps
     .map((c, idx) => ({ c, res: results.ctpResults[idx] }))
     .sort((a, b) => (position.get(a.c.hole) ?? 0) - (position.get(b.c.hole) ?? 0));
+
+  const venmoOf = (id: string) => round.players.find((p) => p.id === id)?.venmo;
+  const missingVenmo = results.payments.some((p) => !venmoOf(p.fromId) || !venmoOf(p.toId));
+
+  /** Open the Venmo app with the payment filled in; fall back to venmo.com if it doesn't open. */
+  const openVenmo = (action: VenmoAction, otherId: string, amount: number) => {
+    const { app, web } = venmoLinks({ action, handle: venmoOf(otherId), amount, note: venmoNote(round.course?.name) });
+    const fallback = window.setTimeout(() => {
+      if (document.visibilityState === "visible") window.location.href = web;
+    }, 1500);
+    const cancel = () => document.visibilityState === "hidden" && window.clearTimeout(fallback);
+    document.addEventListener("visibilitychange", cancel, { once: true });
+    window.location.href = app;
+  };
 
   const share = async () => {
     const text = buildSummary(round, results);
@@ -114,14 +129,30 @@ export default function SettleSheet({
         ) : (
           <ul className="divide-y divide-rule/70">
             {results.payments.map((p, i) => (
-              <li key={i} className="flex items-center justify-between gap-2 py-3">
-                <span className="font-serif text-lg">
-                  {nameOf(p.fromId)} <span className="text-brass">→</span> {nameOf(p.toId)}
-                </span>
-                <span className="tabular font-serif text-xl font-semibold">{formatMoney(p.amount)}</span>
+              <li key={i} className="py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-serif text-lg">
+                    {nameOf(p.fromId)} <span className="text-brass">→</span> {nameOf(p.toId)}
+                  </span>
+                  <span className="tabular font-serif text-xl font-semibold">{formatMoney(p.amount)}</span>
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <Button className="min-h-10 px-2 text-sm" onClick={() => openVenmo("charge", p.fromId, p.amount)} aria-label={`Request ${formatMoney(p.amount)} from ${nameOf(p.fromId)} on Venmo`}>
+                    <VenmoMark /> Request
+                  </Button>
+                  <Button className="min-h-10 px-2 text-sm" onClick={() => openVenmo("pay", p.toId, p.amount)} aria-label={`Pay ${nameOf(p.toId)} ${formatMoney(p.amount)} on Venmo`}>
+                    <VenmoMark /> Pay
+                  </Button>
+                </div>
               </li>
             ))}
           </ul>
+        )}
+        {results.payments.length > 0 && (
+          <p className="mt-1 text-xs text-muted">
+            Opens Venmo with the amount and note filled in — use Request on the collector’s phone, Pay on the payer’s.
+            {missingVenmo && " Add Venmo usernames in Round settings → Players so the right person is filled in too."}
+          </p>
         )}
       </Section>
 
@@ -162,5 +193,14 @@ export default function SettleSheet({
         )}
       </Section>
     </Sheet>
+  );
+}
+
+/** Small "V" badge so the Venmo buttons read at a glance (not the Venmo logo). */
+function VenmoMark() {
+  return (
+    <span aria-hidden className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[#008CFF] text-xs font-extrabold italic text-white">
+      V
+    </span>
   );
 }

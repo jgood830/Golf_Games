@@ -38,6 +38,7 @@ function sanitize(raw: unknown): Round | null {
     id: typeof p?.id === "string" ? p.id : newId(),
     name: typeof p?.name === "string" ? p.name : "",
     strokes: num(p?.strokes, 0),
+    ...(typeof p?.venmo === "string" && p.venmo ? { venmo: p.venmo } : {}),
   }));
 
   const scores: Scores = {};
